@@ -1,0 +1,15 @@
+steps:
+- name: 'gcr.io/cloud-builders/gcloud'
+  args:
+  - functions
+  - deploy
+  - subscribeSlack
+  - --source=./gcb_slack/python
+  - --runtime=python38
+  - --trigger-topic=cloud-builds
+  - --set-env-vars=SLACK_WEBHOOK_URL="${_SLACK_WEBHOOK_URL}",GH_ORG_NAME="${_GH_ORG_NAME}",GH_REPO_NAME="${_GH_REPO_NAME}"
+
+substitutions:
+  _SLACK_WEBHOOK_URL: ""
+  _GH_ORG_NAME: "akhilrajmailbox"
+  _GH_REPO_NAME: "gcp-cicd-sample repo1 repo2"
