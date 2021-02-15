@@ -1,0 +1,31 @@
+info:
+  title: LoadBalancer Configuration
+  description: Setup Instance LB and its Rules
+
+required:
+- port
+- clusterName
+- network
+- region
+- loadBalancerType
+- subnetwork
+
+properties:
+  port:
+    type: integer
+    description: Port to expose on the container as well as on the load balancer (e.g., 80)
+  clusterName:
+    type: string
+    description: Name of the cluster
+  network:
+    type: string
+    description: Name of the network
+  region:
+    type: string
+    description: Region to create LoadBalancer resources
+  subnetwork:
+    type: string
+    description: Name of the subnetwork
+  loadBalancerType:
+    type: string
+    description: Load Balancer Type (INTERNAL / EXTERNAL)

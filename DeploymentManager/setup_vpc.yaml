@@ -1,0 +1,12 @@
+imports:
+- path: ./vpc/vpc.jinja
+  name: vpc.jinja
+
+
+resources:
+- name: vpc
+  type: vpc.jinja
+  properties:
+    region: 'us-east1'
+    createSubnet: 'manual'
+    ipCidrRange: '172.30.0.0/24'

@@ -1,0 +1,25 @@
+resources:
+
+# Allow application - loadbalancer communication
+- type: compute.v1.firewall
+  name: {{ properties["clusterName"] }}-allow-firewall
+  properties:
+    network: {{ properties["network"] }}
+    region: {{ properties["region"] }}
+    targetTags:
+    - "application-server"
+    allowed:
+    - IPProtocol: tcp
+      ports:
+        - {{ properties["port"] }}
+    {%- if properties["loadBalancerType"] == "INTERNAL" %}
+    sourceTags:
+    - "application-client"
+    sourceRanges:
+    # GCP Healthcheck ips
+    - "35.191.0.0/16"
+    - "130.211.0.0/22"
+    {%- else %}
+    sourceRanges:
+    - "0.0.0.0/0"    
+    {%- endif %}

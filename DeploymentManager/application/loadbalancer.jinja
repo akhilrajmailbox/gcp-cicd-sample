@@ -1,0 +1,63 @@
+
+resources:
+
+# application Healthcheck
+# NOTE: In all status codes JSON body is returned.
+- name: {{ properties["clusterName"] }}-healthcheck
+  type: compute.v1.regionHealthChecks
+  properties:
+    region: {{ properties["region"] }}
+    checkIntervalSec: 10
+    timeoutSec: 4
+    unhealthyThreshold: 2
+    healthyThreshold: 2
+    type: HTTP
+    httpHealthCheck:
+      port: {{ properties["port"] }}
+      requestPath: '/info.json'
+
+
+# LB: Backend Service
+# XXX: Using BETA service as failover is in beta
+- name: {{ properties["clusterName"] }}-loadbalancer
+  type: compute.beta.regionBackendService
+  properties:
+    {%- if properties["loadBalancerType"] == "INTERNAL" %}
+    network: {{ properties["network"] }}
+    {%- endif %}
+    region: {{ properties["region"] }}
+    healthChecks: [$(ref.{{ properties["clusterName"] }}-healthcheck.selfLink)]
+    loadBalancingScheme: {{ properties["loadBalancerType"] }}
+    connectionDraining:
+      drainingTimeoutSec: 300
+    backends:
+    - name: {{ properties["clusterName"] }}-preemptable
+      group: $(ref.{{ properties["clusterName"] }}-preemptable-igm.instanceGroup)
+      failover: false
+    - name: {{ properties["clusterName"] }}-dedicated
+      group: $(ref.{{ properties["clusterName"] }}-dedicated-igm.instanceGroup)
+      failover: true
+    failoverPolicy:
+      failoverRatio: 0.0
+      dropTrafficIfUnhealthy: true
+      disableConnectionDrainOnFailover: true
+
+
+# LB: forwardingrule
+- name: {{ properties["clusterName"] }}-forwardingrule
+  type: compute.v1.forwardingRule
+  properties:
+    {%- if properties["loadBalancerType"] == "INTERNAL" %}
+    network: {{ properties["network"] }}
+    serviceLabel: application-server
+    {%- if properties["subnetwork"]|length %}
+    subnetwork: {{ properties["subnetwork"] }}
+    {%- endif %}
+    {%- endif %}
+    region: {{ properties["region"] }}
+    backendService: $(ref.{{ properties["clusterName"] }}-loadbalancer.selfLink)
+    IPProtocol: TCP
+    loadBalancingScheme: {{ properties["loadBalancerType"] }}
+    networkTier: PREMIUM
+    ports:
+    - {{ properties["port"] }}

@@ -1,0 +1,36 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: webserver-deployment
+  labels:
+    app.kubernetes.io/name: webserver
+    app.kubernetes.io/instance: webserver-akhil
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: yaml
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: webserver-akhil
+      app.kubernetes.io/version: "1.0.0"
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/instance: webserver-akhil
+        app.kubernetes.io/version: "1.0.0"
+    spec:
+      containers:
+      - name: webserver
+        image: image
+        imagePullPolicy: Always
+        env:
+        - name: DEPLOYMENT_ID
+          value: "${_DEPLOYMENT_ID}"
+        envFrom:
+          - configMapRef:
+              name: webserver-cm
+          # - configMapRef:
+          #     name: webserver-secrets-cm
+        ports:
+        - containerPort: 80

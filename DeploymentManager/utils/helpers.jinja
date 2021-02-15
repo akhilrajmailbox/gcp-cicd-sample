@@ -1,0 +1,33 @@
+{% macro disk(size, sourceImage=None, type_='template') -%}
+- type: PERSISTENT
+  boot: {% if sourceImage %}true{% else %}false{% endif %}
+  autoDelete: true
+  initializeParams:
+    {% if sourceImage -%}
+    sourceImage: {{ sourceImage }}
+    {% endif -%}
+    diskSizeGb: {{ size }}
+    diskType: {% if type_ == 'template' %}pd-ssd{% else %}https://www.googleapis.com/compute/v1/projects/{{ env["project"] }}/zones/us-east1-a/diskTypes/pd-ssd{% endif %}
+{%- endmacro %}
+
+
+{% macro generateManifest(name, port, dockerImage, dockerEnv) -%}
+apiVersion: v1
+kind: Pod
+metadata:
+  name: {{ name }}
+spec:
+  containers:
+  - name: {{ name }}
+    image: {{ dockerImage }}
+    ports:
+    - hostPort: {{ port }}
+      containerPort: {{ port }}
+    {% if dockerEnv -%}
+    env:
+    {% for key, value in dockerEnv.items() -%}
+    - name: {{ key }}
+      value: '{{ value }}'
+    {% endfor -%}
+    {% endif -%}
+{%- endmacro -%}

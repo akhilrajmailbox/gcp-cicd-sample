@@ -1,0 +1,32 @@
+resources:
+
+## NETWORK
+- type: compute.v1.network
+  name: {{ env["deployment"] }}-network
+  properties:
+    {%- if properties["createSubnet"] == "manual" %}
+    autoCreateSubnetworks: false
+    {%- else %}
+    autoCreateSubnetworks: true
+    {%- endif %}
+
+## SUBNETWORK
+{%- if properties["createSubnet"] == "manual" %}
+- type: compute.v1.subnetwork
+  name: {{ properties["region"] }}-subnetwork
+  properties:
+    network: $(ref.{{ env["deployment"] }}-network.selfLink)
+    region: {{ properties["region"] }}
+    ipCidrRange: {{ properties["ipCidrRange"] }}
+{%- endif %}
+
+## Setup NAT
+- type: compute.v1.router
+  name: {{ env["deployment"] }}-{{ properties["region"] }}-nat-router
+  properties:
+    network: $(ref.{{ env["deployment"] }}-network.selfLink)
+    region: {{ properties["region"] }}
+    nats:
+      - name: {{ env["deployment"] }}-{{ properties["region"] }}-nat
+        natIpAllocateOption: AUTO_ONLY
+        sourceSubnetworkIpRangesToNat: ALL_SUBNETWORKS_ALL_IP_RANGES

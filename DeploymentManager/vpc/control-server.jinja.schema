@@ -1,0 +1,40 @@
+info:
+  title: Control Server
+  description: Setup Control Server
+
+imports:
+- path: ../utils/helpers.jinja
+  name: helpers.jinja
+
+required:
+- region
+- image
+- machineType
+- diskSizeGb
+- targetSize
+- createSubnet
+
+
+properties:
+  region:
+    type: string
+    description: Region to create Instance resources
+  image:
+    type: string
+    default: https://www.googleapis.com/compute/v1/projects/ubuntu-os-cloud/global/images/family/ubuntu-1804-lts
+    description: Image to run on the VMs
+  machineType:
+    type: string
+    default: e2-micro
+    descripton: Type of GCE instance to use
+  diskSizeGb:
+    type: integer
+    default: 20
+    description: Booting Disk size in GB
+  targetSize:
+    type: integer
+    default: 1
+    description: Initial size of the Managed Instance Group / minimum and maximum size for autoscaling
+  createSubnet:
+    type: string
+    description: GCP created subnets (auto) / manual created subnet (manual) (options --> auto / manual)

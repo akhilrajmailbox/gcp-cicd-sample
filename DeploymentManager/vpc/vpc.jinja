@@ -1,0 +1,19 @@
+resources:
+
+- name: vpc
+  type: network.jinja
+  properties:
+    region: {{ properties["region"] }}
+    createSubnet: {{ properties["createSubnet"] }}
+    ipCidrRange: {{ properties["ipCidrRange"] }}
+
+- name: control-server
+  type: control-server.jinja
+  properties:
+    region: {{ properties["region"] }}
+    createSubnet: {{ properties["createSubnet"] }}
+
+- name: vpc-firewall
+  type: firewall.jinja
+  properties:
+    region: {{ properties["region"] }}

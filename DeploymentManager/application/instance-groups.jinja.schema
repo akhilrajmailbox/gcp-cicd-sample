@@ -1,0 +1,55 @@
+info:
+  title: Instance Group
+  description: Setup Instance Group
+
+imports:
+- path: ./instance-template.jinja
+  name: instance-template.jinja
+
+required:
+- dockerImage
+- port
+- dockerEnv
+- region
+- serviceAccount
+- targetSize
+- preemptableMachineType
+- dedicatedMachineType
+- clusterName
+- maxSize
+
+
+properties:
+  dockerImage:
+    type: string
+    description: the docker image to be used
+  port:
+    type: integer
+    description: Port to expose on the container as well as on the load balancer (e.g., 80)
+  dockerEnv:
+    type: object
+    default: {}
+    description: The container environment variables
+  region:
+    type: string
+    description: Region to create Instance resources
+  serviceAccount:
+    type: string
+    description: GCP Service Account attaching to VM
+  clusterName:
+    type: string
+    description: Name of the cluster
+  preemptableMachineType:
+    type: string
+    descripton: Type of GCE instance to use for main cluster (preemptable instance).
+  dedicatedMachineType:
+    type: string
+    descripton: Type of GCE instance to use for failover cluster (dedicated instance).
+  targetSize:
+    type: integer
+    default: 1
+    description: Initial size of the Managed Instance Group
+  maxSize:
+    type: integer
+    default: 1
+    description: Maximum size the Managed Instance Group will be autoscaled to

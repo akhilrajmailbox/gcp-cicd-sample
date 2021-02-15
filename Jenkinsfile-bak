@@ -1,0 +1,101 @@
+def SECRET_VERSION = ''
+def ENABLE_DEPLOY = ''
+
+
+//derive settings from scm branch name
+switch (BRANCH_NAME) {
+    case "develop":
+        PROJECT_ID = 'test-qa'
+        SECRET_NAME = 'newsecret'
+        K8S_NAMESPACE = 'ff-dev'
+        K8S_LOCATION = 'us-east1'
+        K8S_CLUSTER = 'test-cluster'
+        ENABLE_DEPLOY = 'true'
+        break
+    case "main":
+        PROJECT_ID = 'test-prod'
+        SECRET_NAME = 'newsecret'
+        K8S_NAMESPACE = 'ff-prod'
+        K8S_LOCATION = 'us-east1'
+        K8S_CLUSTER = 'prod-cluster'
+        ENABLE_DEPLOY = 'true'
+        break
+}
+
+if (ENABLE_DEPLOY == 'true') {
+    node('slave-vm-1804') {
+
+        stage('Checkout SCM') {
+            checkout scm
+        }
+
+        stage('GCP Login') {
+            sh "y | gcloud auth configure-docker && gcloud container clusters get-credentials ${K8S_CLUSTER} --region ${K8S_LOCATION} --project ${PROJECT_ID}"
+        }
+
+        stage('Setting up Env') {
+            FF_UPGRADE = sh(script: "jq '.upgrade' ./svc_info.json", returnStdout: true).trim()
+            echo "setting FF_UPGRADE to ${FF_UPGRADE}"
+            SECRET_VERSION = sh(script: "jq '.secretVersion' ./svc_info.json", returnStdout: true).trim()
+            echo "setting SECRET_VERSION to ${SECRET_VERSION}"
+            DEPLOY_TIME = sh(returnStdout: true, script: 'date +%F--%H-%M-%S--%Z').trim()
+            echo "setting DEPLOY_TIME to ${DEPLOY_TIME}"
+            try {
+                DEPLOY_SVC = sh(script: "kubectl get services -n ${K8S_NAMESPACE} | grep webserver-service >/dev/null", returnStdout: true).trim()
+            } catch (ignored) {
+                DEPLOY_SVC = ""
+            }
+            echo "setting DEPLOY_SVC to ${DEPLOY_SVC}"
+        }
+
+        withEnv(["PROJECT_ID=${PROJECT_ID}", "SECRET_NAME=${SECRET_NAME}", "K8S_NAMESPACE=${K8S_NAMESPACE}",
+                "K8S_LOCATION=${K8S_LOCATION}", "K8S_CLUSTER=${K8S_CLUSTER}", "ENABLE_DEPLOY=${ENABLE_DEPLOY}",
+                "FF_UPGRADE=${FF_UPGRADE}", "SECRET_VERSION=${SECRET_VERSION}", "DEPLOY_TIME=${DEPLOY_TIME}", "DEPLOY_SVC=${DEPLOY_SVC}"]) {
+
+            stage('Download Secrets') {
+                sh "gcloud secrets versions access ${SECRET_VERSION} --secret=${SECRET_NAME} > ./k8s/secret-configmap.yaml"
+            }
+
+            stage('Docker Image Build') {
+                sh """
+                    docker build -t gcr.io/${PROJECT_ID}/webserver:latest ./dockerfiles
+                    docker push gcr.io/${PROJECT_ID}/webserver:latest
+                """
+            }
+
+            stage('Configure Kubernetes Configmap') {
+                sh """
+                    kubectl -n ${K8S_NAMESPACE} apply -f ./k8s/configmap.yaml
+                    kubectl -n ${K8S_NAMESPACE} apply -f ./k8s/secret-configmap.yaml
+                """
+            }
+
+            if (FF_UPGRADE == '"enable"') {
+                PODS_NAMES = sh(script: "kubectl get pods -n ${K8S_NAMESPACE} -oname", returnStdout: true).trim()
+                def pods_array = PODS_NAMES.split("\n")
+                stage('K8s Upgrade') {
+                    for(pod in pods_array) {
+                        sh "kubectl exec ${pod} -n ${K8S_NAMESPACE} -- ls -la"
+                    }
+                }
+            }
+
+            stage('K8s Deploy') {
+                sh "envsubst < ./k8s/deploy.yaml | kubectl -n ${K8S_NAMESPACE} apply -f -"
+            }
+
+            if (DEPLOY_SVC == '') {
+                if (fileExists('./k8s/service.yaml')) {
+                    stage('K8s Service') {
+                        echo "Service for webserver is available and is being Configuring"
+                        sh "kubectl -n ${K8S_NAMESPACE} apply -f ./k8s/service.yaml"
+                    }
+                } else {
+                    echo "./k8s/service.yaml not found"
+                }
+            }
+        }
+    }
+} else {
+    echo "ENABLE_DEPLOY is not enabled, Branch : ${BRANCH_NAME} is not authorized to perform this build..!"
+}
