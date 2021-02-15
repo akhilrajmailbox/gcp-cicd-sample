@@ -1,0 +1,41 @@
+{% set NETWORK = 'global/networks/' + properties["network"] %}
+{% set SUBNETWORK = 'https://www.googleapis.com/compute/v1/projects/' + env["project"] + '/regions/' + properties["region"] + '/subnetworks/' + properties["subnetwork"] %}
+{% set CLUSTERNAME = 'application' + '-' + properties["region"] + '-v' + properties["cluster_version"] %}
+{% set SERVICE_ACCOUNT_EMAIL = properties["serviceAccount"] + '@' + env["project"] + '.iam.gserviceaccount.com' %}
+
+
+resources:
+
+- name: application-instance-groups
+  type: instance-groups.jinja
+  properties:
+    dockerImage: {{ properties["dockerImage"] }}
+    serviceAccount: {{ SERVICE_ACCOUNT_EMAIL }}
+    port: {{ properties["port"] }}
+    network: {{ NETWORK }}
+    subnetwork: {{ SUBNETWORK }}
+    region: {{ properties["region"] }}
+    clusterName: {{ CLUSTERNAME }}
+    preemptableMachineType: {{ properties["preemptableMachineType"] }}
+    dedicatedMachineType: {{ properties["dedicatedMachineType"] }}
+    targetSize: {{ properties["targetSize"] }}
+    maxSize: {{ properties["maxSize"] }}
+
+- name: application-firewall
+  type: firewall.jinja
+  properties:
+    network: {{ NETWORK }}
+    region: {{ properties["region"] }}
+    clusterName: {{ CLUSTERNAME }}
+    port: {{ properties["port"] }}
+    loadBalancerType: {{ properties["loadBalancerType"] }}
+
+- name: application-loadbalancer
+  type: loadbalancer.jinja
+  properties:
+    network: {{ NETWORK }}
+    subnetwork: {{ SUBNETWORK }}
+    region: {{ properties["region"] }}
+    clusterName: {{ CLUSTERNAME }}
+    port: {{ properties["port"] }}
+    loadBalancerType: {{ properties["loadBalancerType"] }}

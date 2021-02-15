@@ -1,0 +1,23 @@
+info:
+  title: Setup VPC
+  description: Setup VPC
+
+imports:
+- path: ./network.jinja
+  name: network.jinja
+- path: ./control-server.jinja
+  name: control-server.jinja
+- path: ./firewall.jinja
+  name: firewall.jinja
+
+required:
+- region
+- createSubnet
+
+properties:
+  region:
+    type: string
+    description: Region in which to create all resources
+  createSubnet:
+    type: string
+    description: GCP created subnets (auto) / manual created subnet (manual) (options --> auto / manual)

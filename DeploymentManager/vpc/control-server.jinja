@@ -1,0 +1,39 @@
+{% import 'helpers.jinja' as helpers with context %}
+
+resources:
+
+# Instance Template
+- name: {{ env["deployment"] }}-control-server-template
+  type: compute.v1.instanceTemplate
+  properties:
+    properties:
+      machineType: {{ properties["machineType"] }}
+      networkInterfaces:
+      - network: $(ref.{{ env["deployment"] }}-network.selfLink)
+        {%- if properties["createSubnet"] == "manual" %}
+        subnetwork: $(ref.{{ properties["region"] }}-subnetwork.selfLink)
+        {%- endif %}
+        # Access Config required to give the instance a public IP address
+        accessConfigs:
+        - name: External NAT
+          type: ONE_TO_ONE_NAT
+      tags:
+        items:
+        - 'control'
+        - 'wkhtml2pdf-client'
+      metadata:
+        items:
+        - key: 'purpose'
+          value: 'control'
+      disks:
+      {{ helpers.disk(properties["diskSizeGb"], properties["image"])|indent(6) }}
+
+
+# Setup an instance group for the control-server
+- name: {{ env["deployment"] }}-control-server-igm
+  type: compute.v1.regionInstanceGroupManagers
+  properties:
+    baseInstanceName: {{ env["deployment"] }}-control-server
+    instanceTemplate: $(ref.{{ env["deployment"] }}-control-server-template.selfLink)
+    targetSize: {{ properties["targetSize"] }}
+    region: {{ properties["region"] }}

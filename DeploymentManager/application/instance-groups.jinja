@@ -1,0 +1,108 @@
+{#
+    A cluster consists of the following components:
+
+    * Preemptable instance group (main cluster)
+      * This instance is configured with preemptable instance. 
+      * have multi zone deployment configuration for HA
+      * multiple instances in the instance group
+      
+    * Dedicated instance group (failover cluster)
+      * This instance is configured with dedicated instance.
+      * single instance in the instance group
+      * Multizone deployment configuration for HA 
+
+    * Auto Scaling configuration (preemptable instance group / main cluster)
+      * configured with cpuUtilization
+      * redeployment will happen randomly in all available zone
+
+    * Auto Scaling configuration (dedicated instance group / failover cluster)
+      * configured but not useful as long as the min and max replicas are 1
+      * still this configuration will help to maintain the single node available all time
+
+    This configuration saves money.
+#}
+
+
+resources:
+
+# Setup a preemptable instance template
+- name: {{ properties["clusterName"] }}-preemptable-template
+  type: instance-template.jinja
+  properties:
+    dockerEnv:
+      PORT: {{ properties["port"] }}
+      BUCKET: {{ env["project"] }}-application-data
+      SERVICE_ACCOUNT_EMAIL: {{ properties["serviceAccount"] }}
+    dockerImage: {{ properties["dockerImage"] }}
+    port: {{ properties["port"] }}
+    role: preemptable
+    clusterName: {{ properties["clusterName"] }}
+    serviceAccount: {{ properties["serviceAccount"] }}
+    machineType: {{ properties["preemptableMachineType"] }}
+    network: {{ properties["network"] }}
+    subnetwork: {{ properties["subnetwork"] or '' }}
+
+# Setup a dedicated instance template
+- name: {{ properties["clusterName"] }}-dedicated-template
+  type: instance-template.jinja
+  properties:
+    dockerEnv:
+      PORT: {{ properties["port"] }}
+      BUCKET: {{ env["project"] }}-application-data
+      SERVICE_ACCOUNT_EMAIL: {{ properties["serviceAccount"] }}
+    dockerImage: {{ properties["dockerImage"] }}
+    port: {{ properties["port"] }}
+    role: dedicated
+    clusterName: {{ properties["clusterName"] }}
+    serviceAccount: {{ properties["serviceAccount"] }}
+    machineType: {{ properties["dedicatedMachineType"] }}
+    network: {{ properties["network"] }}
+    subnetwork: {{ properties["subnetwork"] or '' }}
+
+
+
+
+# Setup an preemptable instance group for the application
+- name: {{ properties["clusterName"] }}-preemptable-igm
+  type: compute.v1.regionInstanceGroupManagers
+  properties:
+    baseInstanceName: {{ properties["clusterName"] }}-p
+    instanceTemplate: $(ref.{{ properties["clusterName"] }}-preemptable-template.selfLink)
+    targetSize: {{ properties["targetSize"] }}
+    region: {{ properties["region"] }}
+
+# Setup an dedicated instance group for the application
+- name: {{ properties["clusterName"] }}-dedicated-igm
+  type: compute.v1.regionInstanceGroupManagers
+  properties:
+    baseInstanceName: {{ properties["clusterName"] }}-d
+    instanceTemplate: $(ref.{{ properties["clusterName"] }}-dedicated-template.selfLink)
+    targetSize: 1
+    region: {{ properties["region"] }}
+
+
+
+
+- name: {{ properties["clusterName"] }}-preemptable-autoscaler
+  type: compute.v1.regionAutoscalers
+  properties:
+    region: {{ properties["region"] }}
+    target: $(ref.{{ properties["clusterName"] }}-preemptable-igm.selfLink)
+    autoscalingPolicy:
+      coolDownPeriodSec: 180
+      cpuUtilization:
+        utilizationTarget: 0.6
+      minNumReplicas: {{ properties["targetSize"] }}
+      maxNumReplicas: {{ properties["maxSize"] }}
+
+- name: {{ properties["clusterName"] }}-dedicated-autoscaler
+  type: compute.v1.regionAutoscalers
+  properties:
+    region: {{ properties["region"] }}
+    target: $(ref.{{ properties["clusterName"] }}-dedicated-igm.selfLink)
+    autoscalingPolicy:
+      coolDownPeriodSec: 180
+      cpuUtilization:
+        utilizationTarget: 0.9
+      minNumReplicas: 1
+      maxNumReplicas: 1

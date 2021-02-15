@@ -1,0 +1,11 @@
+info:
+  title: Firewall Ingress and Egress
+  description: Setup Ingress and Egress rules
+
+required:
+- region
+
+properties:
+  region:
+    type: string
+    description: Name of the region

@@ -1,0 +1,65 @@
+imports:
+- path: ./instance-groups.jinja
+  name: instance-groups.jinja
+- path: ./firewall.jinja
+  name: firewall.jinja
+- path: ./loadbalancer.jinja
+  name: loadbalancer.jinja
+
+
+required:
+- network
+- subnetwork
+- region
+- cluster_version
+- loadBalancerType
+- preemptableMachineType
+- dedicatedMachineType
+- targetSize
+- maxSize
+- port
+- dockerImage
+- serviceAccount
+
+
+properties:
+  network:
+    type: string
+    description: Network to which deploy this server to
+  subnetwork:
+    type: string
+    description: subnet name to which deploy this server to
+  region:
+    type: string
+    description: Region in which to create all resources
+  cluster_version:
+    type: string
+    description: Cluster Version
+  loadBalancerType:
+    type: string
+    default: INTERNAL
+    description: Load Balancer Type (INTERNAL / EXTERNAL)
+  preemptableMachineType:
+    type: string
+    default: e2-small
+    descripton: Type of GCE instance to use for main cluster (preemptable instance)
+  dedicatedMachineType:
+    type: string
+    default: e2-small
+    descripton: Type of GCE instance to use for failover cluster (dedicated instance)
+  targetSize:
+    type: integer
+    description: Initial size of the preemptable InstanceGroup (main cluster)
+  maxSize:
+    type: integer
+    description: Maximum number of instance can scale-in on preemptable InstanceGroup (main cluster autoscaling configuration)
+  port:
+    type: integer
+    default: 9000
+    description: port number of the application running / loadbalacer serving port
+  dockerImage:
+    type: string
+    description: Docker image name with tag
+  serviceAccount:
+    type: string
+    description: GCP Service Account attaching to resources

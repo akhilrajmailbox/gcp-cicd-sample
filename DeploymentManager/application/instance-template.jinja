@@ -1,0 +1,35 @@
+{% import 'helpers.jinja' as helpers with context %}
+
+resources:
+
+# Instance Template
+- type: compute.v1.instanceTemplate
+  name: {{ properties["clusterName"] }}-{{ properties["role"] }}-template
+  properties:
+    properties:
+      serviceAccounts:
+      - email: {{ properties["serviceAccount"] }}
+        scopes:
+        - "https://www.googleapis.com/auth/devstorage.read_write"
+        - "https://www.googleapis.com/auth/iam"
+      {%- if properties["role"] == "preemptable" %}
+      scheduling:
+        preemptible: true
+      {%- endif %}
+      machineType: {{ properties["machineType"] }}
+      networkInterfaces:
+      - network: {{ properties["network"] }}
+        {% if properties["subnetwork"] -%}
+        subnetwork: {{ properties["subnetwork"] }}
+        {%- endif %}
+      tags:
+        items:
+        - 'wkhtml2pdf-server'
+        - {{ properties["role"] }}
+      metadata:
+        items:
+        - key: gce-container-declaration
+          value: |
+            {{ helpers.generateManifest(env["name"], properties["port"],properties["dockerImage"], properties["dockerEnv"])|indent(12) }}
+      disks:
+      {{ helpers.disk(properties["diskSizeGb"], properties["image"])|indent(6) }}

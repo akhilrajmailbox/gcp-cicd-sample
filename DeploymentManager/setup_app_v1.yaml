@@ -1,0 +1,19 @@
+imports:
+- path: ./application/clusters.jinja
+  name: clusters.jinja
+
+
+resources:
+- name: application-clusters
+  type: clusters.jinja
+  properties:
+    network: 'my-vpc-network'
+    region: 'us-east1'
+    subnetwork: 'us-east1-subnetwork'
+    cluster_version: '1'
+    preemptableMachineType: 'e2-small'
+    dedicatedMachineType: 'e2-small'
+    targetSize: 2
+    maxSize: 5
+    serviceAccount: 'application-app'
+    dockerImage: 'gcr.io/org-my/application-docker:develop'

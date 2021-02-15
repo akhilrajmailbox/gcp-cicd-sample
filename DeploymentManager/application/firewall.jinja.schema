@@ -1,0 +1,23 @@
+info:
+  title: Firewall Inbound Configuration
+  description: Setup Inbound rules
+
+required:
+- port
+- clusterName
+- network
+- loadBalancerType
+
+properties:
+  port:
+    type: integer
+    description: Port to expose on the container as well as on the load balancer (e.g., 80)
+  clusterName:
+    type: string
+    description: Name of the cluster
+  network:
+    type: string
+    description: Name of the network
+  loadBalancerType:
+    type: string
+    description: Load Balancer Type (INTERNAL / EXTERNAL)

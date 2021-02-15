@@ -202,3 +202,63 @@ usermod -aG docker jenkins
 * add jenkins username / private key configuration in credentials
 * image template creation before adding the slave machine
 * use the service account for both master and slave machine template / vm
+
+
+
+
+
+
+
+
+### Configure the Cloud Build with cloudbuild.yaml file (reference docs)
+
+Open [GCP Cloud Build](https://console.cloud.google.com/cloud-build/triggers) and create a cloud build trigger with the configuration file `cloudbuild.yaml`
+
+you will find the cloud build configuration steps at [create-manage-triggers](https://cloud.google.com/cloud-build/docs/automating-builds/create-manage-triggers#console)
+
+**Note : Passing the environment variables in the cloud build configuration is mandatory**
+
+In cloud build, user-defined variable must begin with an underscore (_) and use only uppercase-letters and numbers. you can find more details [here](https://cloud.google.com/cloud-build/docs/configuring-builds/substitute-variable-values#using_user-defined_substitutions)
+
+* _VERSION  (example)
+
+#### Configure cloud scheduler to trigger the cloud build
+
+
+Open [GCP Cloud Scheduler](https://console.cloud.google.com/cloudscheduler) then, create a cloud scheduler job to trigger the cloud build which we created before.
+
+Please find the following information for your reference:
+
+
+*cron*
+
+Run every 20 hrs --> 0 */20 * * *
+
+
+*Target*
+
+* Choose the target as `HTTP`
+* configure the URL as follow : https://cloudbuild.googleapis.com/v1/projects/{PROJECT_ID}/triggers/{TRIGGER_ID}:run
+    * PROJECT_ID : ID of the Project 
+    * TRIGGER_ID : ID of the Cloud Build Trigger
+* HTTP Method : `POST`
+* Body : 
+
+```
+{
+  "branchName": "master"
+}
+```
+
+* Auth Header: Add OAuth token
+* Service account: The email of the service account to be used to trigger the build. eg : `application-deployment@${PROJECT_ID}.iam.gserviceaccount.com`
+
+
+**Note : Fetch the TRIGGER_ID with gcloud cli**
+
+* TRIGGER_ID : `gcloud beta builds triggers describe JOB_NAME | grep "id:" | awk '{print $2}'`
+
+Where `JOB_NAME` is the name you given for the Cloud build job
+
+
+
